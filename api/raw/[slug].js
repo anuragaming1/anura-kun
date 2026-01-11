@@ -2,23 +2,28 @@ const getDatabase = require('../../lib/database');
 
 module.exports = async (req, res) => {
     const db = await getDatabase();
-    const { slug } = req.query;
-    const { secret } = req.query;
     
-    if (!slug) {
+    // SỬA LẠI PHẦN NÀY: Lấy slug từ URL path thay vì query parameter
+    const slug = req.query.slug || req.url.split('/').pop();
+    
+    if (!slug || slug === '[slug]') {
         return res.status(400).send('Missing slug parameter');
     }
     
-    const snippet = await db.getSnippet(slug);
+    // Loại bỏ query string nếu có
+    const cleanSlug = slug.split('?')[0];
+    
+    const snippet = await db.getSnippet(cleanSlug);
     
     if (!snippet) {
         return res.status(404).send('Snippet not found');
     }
     
     // Increment view count
-    await db.incrementViews(slug);
+    await db.incrementViews(cleanSlug);
     
     // Check if client should see real code
+    const { secret } = req.query;
     const shouldShowRealCode = checkForRealCodeClient(req, secret, snippet.secret_key);
     
     // Set content type
