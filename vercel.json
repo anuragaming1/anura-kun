@@ -1,7 +1,7 @@
 {
   "rewrites": [
     { "source": "/", "destination": "/index.html" },
-    { "source": "/raw/(.*)", "destination": "/api/raw/[slug]" },
+    { "source": "/raw/(.*)", "destination": "/api/raw" },
     { "source": "/api/(.*)", "destination": "/api/index" }
   ],
   "headers": [
