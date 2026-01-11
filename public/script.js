@@ -289,4 +289,271 @@ document.addEventListener('DOMContentLoaded', function() {
             showNotification(`Đã tải lên: ${file.name}`, 'success');
         };
         
-        reader.read
+        reader.readAsText(file);
+    }
+    
+    // Slug checking
+    function setupSlugCheck() {
+        const slugInput = document.getElementById('slug');
+        const checkSlugBtn = document.getElementById('check-slug');
+        const slugStatus = document.getElementById('slug-status');
+        
+        if (!slugInput || !checkSlugBtn) return;
+        
+        checkSlugBtn.addEventListener('click', checkSlug);
+        slugInput.addEventListener('input', function() {
+            currentSlug = this.value.trim();
+            slugStatus.textContent = '';
+            slugStatus.className = 'status-message';
+            isSlugAvailable = false;
+        });
+        
+        slugInput.addEventListener('blur', function() {
+            if (this.value.trim() && !isSlugAvailable) {
+                checkSlug();
+            }
+        });
+        
+        async function checkSlug() {
+            if (!isLoggedIn) {
+                showNotification('Vui lòng đăng nhập trước', 'error');
+                loginModal.classList.remove('hidden');
+                return;
+            }
+            
+            const slug = slugInput.value.trim();
+            
+            if (!slug) {
+                slugStatus.textContent = 'Vui lòng nhập tên đường dẫn';
+                slugStatus.style.color = '#ff5555';
+                return;
+            }
+            
+            if (!/^[a-z0-9-_]+$/i.test(slug)) {
+                slugStatus.textContent = 'Chỉ cho phép chữ, số, gạch ngang và gạch dưới';
+                slugStatus.style.color = '#ff5555';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/check/${slug}`);
+                const data = await response.json();
+                
+                if (data.available) {
+                    slugStatus.textContent = '✓ Tên đường dẫn có sẵn';
+                    slugStatus.style.color = '#00ff00';
+                    isSlugAvailable = true;
+                } else {
+                    slugStatus.textContent = '✗ Tên đường dẫn đã tồn tại';
+                    slugStatus.style.color = '#ff5555';
+                    isSlugAvailable = false;
+                }
+            } catch (error) {
+                slugStatus.textContent = 'Lỗi kết nối server';
+                slugStatus.style.color = '#ff5555';
+            }
+        }
+    }
+    
+    // Create snippet
+    function setupCreateSnippet() {
+        const createBtn = document.getElementById('create-btn');
+        if (!createBtn) return;
+        
+        createBtn.addEventListener('click', async () => {
+            if (!isLoggedIn) {
+                showNotification('Vui lòng đăng nhập để tạo snippet', 'error');
+                loginModal.classList.remove('hidden');
+                return;
+            }
+            
+            const slug = document.getElementById('slug').value.trim();
+            const contentFake = document.getElementById('content_fake').value.trim();
+            const contentReal = document.getElementById('content_real').value.trim();
+            
+            // Validation
+            if (!slug) {
+                showNotification('Vui lòng nhập tên đường dẫn', 'error');
+                return;
+            }
+            
+            if (!contentFake || !contentReal) {
+                showNotification('Vui lòng nhập cả mã giả và mã thật', 'error');
+                return;
+            }
+            
+            if (!isSlugAvailable) {
+                showNotification('Vui lòng kiểm tra tên đường dẫn trước', 'error');
+                return;
+            }
+            
+            // Prepare data
+            const formData = {
+                slug: slug,
+                content_fake: contentFake,
+                content_real: contentReal
+            };
+            
+            // Show loading
+            const originalText = createBtn.innerHTML;
+            createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+            createBtn.disabled = true;
+            
+            try {
+                const response = await fetch('/api/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update UI with results
+                    document.getElementById('public-link').value = result.raw_url;
+                    document.getElementById('secret-link').value = result.real_url;
+                    
+                    // Show result section
+                    document.getElementById('result-section').classList.remove('hidden');
+                    
+                    // Scroll to results
+                    document.getElementById('result-section').scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Reload snippets list
+                    loadRecentSnippets();
+                    
+                    showNotification('Tạo snippet thành công!', 'success');
+                } else {
+                    showNotification('Lỗi: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showNotification('Lỗi kết nối server', 'error');
+            } finally {
+                // Reset button
+                createBtn.innerHTML = originalText;
+                createBtn.disabled = false;
+            }
+        });
+    }
+    
+    // Reset form
+    function setupResetButton() {
+        const resetBtn = document.getElementById('reset-btn');
+        if (!resetBtn) return;
+        
+        resetBtn.addEventListener('click', () => {
+            document.getElementById('slug').value = '';
+            document.getElementById('content_fake').value = '';
+            document.getElementById('content_real').value = '';
+            document.getElementById('slug-status').textContent = '';
+            document.getElementById('result-section').classList.add('hidden');
+            isSlugAvailable = false;
+            showNotification('Đã làm mới form', 'info');
+        });
+    }
+    
+    // Copy buttons
+    function setupCopyButtons() {
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.copy-btn')) {
+                const button = e.target.closest('.copy-btn');
+                const targetId = button.getAttribute('data-clipboard-target');
+                const input = document.querySelector(targetId);
+                
+                if (!input) return;
+                
+                input.select();
+                document.execCommand('copy');
+                
+                // Visual feedback
+                const originalHtml = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-check"></i>';
+                button.style.background = 'linear-gradient(90deg, #00ff00, #008800)';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalHtml;
+                    button.style.background = '';
+                }, 2000);
+                
+                showNotification('Đã sao chép link vào clipboard', 'success');
+            }
+        });
+    }
+    
+    // Load recent snippets
+    function setupRefreshSnippets() {
+        const refreshBtn = document.getElementById('refresh-snippets');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', loadRecentSnippets);
+        }
+    }
+    
+    async function loadRecentSnippets() {
+        if (!isLoggedIn) return;
+        
+        const snippetsList = document.getElementById('snippets-list');
+        if (!snippetsList) return;
+        
+        snippetsList.innerHTML = '<div class="loading-snippet"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+        
+        try {
+            const response = await fetch('/api/snippets');
+            const snippets = await response.json();
+            
+            if (!snippets || snippets.length === 0) {
+                snippetsList.innerHTML = '<div class="loading-snippet">Chưa có snippet nào</div>';
+                return;
+            }
+            
+            snippetsList.innerHTML = '';
+            
+            snippets.forEach(snippet => {
+                const date = new Date(snippet.created_at);
+                const formattedDate = date.toLocaleDateString('vi-VN');
+                const formattedTime = date.toLocaleTimeString('vi-VN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                const snippetElement = document.createElement('div');
+                snippetElement.className = 'snippet-item';
+                snippetElement.innerHTML = `
+                    <div class="snippet-header">
+                        <a href="/raw/${snippet.slug}" target="_blank" class="snippet-slug">
+                            /raw/${snippet.slug}
+                        </a>
+                    </div>
+                    <div class="snippet-meta">
+                        <span><i class="far fa-calendar"></i> ${formattedDate}</span>
+                        <span><i class="far fa-clock"></i> ${formattedTime}</span>
+                        <span><i class="far fa-eye"></i> ${snippet.views} lượt xem</span>
+                    </div>
+                `;
+                
+                snippetsList.appendChild(snippetElement);
+            });
+        } catch (error) {
+            snippetsList.innerHTML = '<div class="loading-snippet">Lỗi khi tải dữ liệu</div>';
+        }
+    }
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        // Ctrl+Enter to submit form
+        if (e.ctrlKey && e.key === 'Enter') {
+            if (document.getElementById('create-btn')) {
+                document.getElementById('create-btn').click();
+            }
+        }
+        
+        // Escape to close modal
+        if (e.key === 'Escape') {
+            loginModal.classList.add('hidden');
+        }
+    });
+});
