@@ -7,150 +7,193 @@
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐸</text></svg>">
+    <style>
+        .login-page {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
+            padding: 20px;
+        }
+        
+        .main-app {
+            display: none;
+        }
+        
+        body.logged-in .login-page {
+            display: none;
+        }
+        
+        body.logged-in .main-app {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header với login -->
-        <header class="neon-header">
-            <div class="header-top">
-                <div class="logo-container">
-                    <h1 class="neon-title">
-                        <i class="fas fa-code"></i> Pastebin <span class="neon-accent">NeOn</span>
-                    </h1>
-                    <p class="neon-subtitle">anura-kun.vercel.app</p>
-                </div>
-                <div class="auth-section">
-                    <button id="loginBtn" class="neon-btn-small login-btn">
-                        <i class="fas fa-user"></i> <span class="login-text">Đăng nhập</span>
-                    </button>
-                </div>
+    <!-- Trang đăng nhập (hiển thị đầu tiên) -->
+    <div class="login-page">
+        <div class="login-container neon-modal">
+            <div class="login-header">
+                <h1 class="neon-title">
+                    <i class="fas fa-code"></i> Pastebin <span class="neon-accent">NeOn</span>
+                </h1>
+                <p class="neon-subtitle">anura-kun.vercel.app</p>
+                <p class="login-tagline">Lưu trữ mã nguồn Lua/Luau với bảo mật kép</p>
             </div>
-            <p class="header-description">Lưu trữ mã nguồn Lua/Luau với bảo mật kép</p>
-        </header>
-
-        <!-- Login Modal -->
-        <div id="loginModal" class="modal hidden">
-            <div class="modal-content neon-modal">
-                <div class="modal-header">
-                    <h2><i class="fas fa-user-shield"></i> Đăng nhập</h2>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
+            
+            <div class="login-body">
+                <div class="login-card">
+                    <h2><i class="fas fa-user-shield"></i> Đăng nhập hệ thống</h2>
                     <p class="login-info">Chỉ có <strong>một tài khoản duy nhất</strong> để quản lý snippet</p>
+                    
                     <form id="loginForm">
                         <div class="form-group">
                             <label for="username"><i class="fas fa-user"></i> Tên đăng nhập</label>
                             <div class="input-with-icon">
                                 <i class="fas fa-user input-icon"></i>
-                                <input type="text" id="username" class="neon-input" value="anura123" readonly>
+                                <input type="text" id="username" class="neon-input" placeholder="Nhập tên đăng nhập" required>
                             </div>
                         </div>
+                        
                         <div class="form-group">
                             <label for="password"><i class="fas fa-key"></i> Mật khẩu</label>
                             <div class="input-with-icon">
                                 <i class="fas fa-key input-icon"></i>
-                                <input type="password" id="password" class="neon-input" value="anura123" readonly>
+                                <input type="password" id="password" class="neon-input" placeholder="Nhập mật khẩu" required>
                             </div>
                         </div>
+                        
                         <div class="form-actions">
                             <button type="submit" class="neon-btn-primary full-width">
                                 <i class="fas fa-sign-in-alt"></i> Đăng nhập
                             </button>
                         </div>
                     </form>
-                    <div class="login-note">
-                        <i class="fas fa-info-circle"></i> Đây là tài khoản mặc định duy nhất, không thể tạo tài khoản mới
+                    
+                    <div class="login-message" id="loginMessage"></div>
+                    
+                    <div class="security-note">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Lưu ý bảo mật:</strong>
+                            <ul>
+                                <li>Chỉ người quản trị mới có thể đăng nhập</li>
+                                <li>Không chia sẻ thông tin đăng nhập</li>
+                                <li>Hệ thống tự động logout sau 7 ngày</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <div class="login-footer">
+                <p><strong>Pastebin NeOn</strong> © 2024 - <span class="domain">anura-kun.vercel.app</span></p>
+                <p class="footer-note">Hệ thống lưu trữ mã nguồn bảo mật cao</p>
+            </div>
         </div>
+    </div>
 
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Tạo snippet (chỉ hiện khi đăng nhập) -->
-            <section class="create-section" id="createSection">
-                <div class="section-header">
-                    <h2><i class="fas fa-plus-circle"></i> Tạo snippet mới</h2>
-                    <div class="neon-badge">Bảo mật cao</div>
-                </div>
-                
-                <div class="login-required hidden" id="loginRequired">
-                    <div class="login-prompt">
-                        <i class="fas fa-lock"></i>
-                        <h3>Cần đăng nhập để tạo snippet</h3>
-                        <p>Vui lòng đăng nhập với tài khoản duy nhất để sử dụng tính năng này</p>
-                        <button id="promptLoginBtn" class="neon-btn-primary">
-                            <i class="fas fa-sign-in-alt"></i> Đăng nhập ngay
+    <!-- Ứng dụng chính (chỉ hiện sau khi đăng nhập) -->
+    <div class="main-app">
+        <div class="container">
+            <!-- Header với logout -->
+            <header class="neon-header">
+                <div class="header-top">
+                    <div class="logo-container">
+                        <h1 class="neon-title">
+                            <i class="fas fa-code"></i> Pastebin <span class="neon-accent">NeOn</span>
+                        </h1>
+                        <p class="neon-subtitle">anura-kun.vercel.app</p>
+                    </div>
+                    <div class="auth-section">
+                        <div class="user-info">
+                            <i class="fas fa-user-circle"></i>
+                            <span id="usernameDisplay">anura123</span>
+                        </div>
+                        <button id="logoutBtn" class="neon-btn-small logout-btn">
+                            <i class="fas fa-sign-out-alt"></i> <span class="logout-text">Đăng xuất</span>
                         </button>
                     </div>
                 </div>
-                
-                <div class="form-container" id="formContainer">
-                    <div class="form-group">
-                        <label for="slug">
-                            <i class="fas fa-link"></i> Tên đường dẫn
-                        </label>
-                        <div class="input-group">
-                            <span class="input-prefix">https://anura-kun.vercel.app/raw/</span>
-                            <input type="text" id="slug" placeholder="ten-duong-dan" class="neon-input">
-                        </div>
-                        <div class="slug-check">
-                            <span id="slug-status" class="status-message"></span>
-                            <button type="button" id="check-slug" class="neon-btn-small">
-                                <i class="fas fa-check"></i> Kiểm tra
-                            </button>
-                        </div>
+                <p class="header-description">Lưu trữ mã nguồn Lua/Luau với bảo mật kép</p>
+            </header>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Tạo snippet -->
+                <section class="create-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-plus-circle"></i> Tạo snippet mới</h2>
+                        <div class="neon-badge">Bảo mật cao</div>
                     </div>
                     
-                    <div class="tabs-container">
-                        <div class="tabs">
-                            <button class="tab active" data-tab="fake">
-                                <i class="fas fa-eye-slash"></i> Mã giả (Fake)
-                            </button>
-                            <button class="tab" data-tab="real">
-                                <i class="fas fa-shield-alt"></i> Mã thật (Real)
-                            </button>
+                    <div class="form-container">
+                        <div class="form-group">
+                            <label for="slug">
+                                <i class="fas fa-link"></i> Tên đường dẫn
+                            </label>
+                            <div class="input-group">
+                                <span class="input-prefix">https://anura-kun.vercel.app/raw/</span>
+                                <input type="text" id="slug" placeholder="ten-duong-dan" class="neon-input">
+                            </div>
+                            <div class="slug-check">
+                                <span id="slug-status" class="status-message"></span>
+                                <button type="button" id="check-slug" class="neon-btn-small">
+                                    <i class="fas fa-check"></i> Kiểm tra
+                                </button>
+                            </div>
                         </div>
                         
-                        <!-- Fake code tab -->
-                        <div class="tab-content active" id="fake-tab">
-                            <div class="tab-description">
-                                <i class="fas fa-eye"></i> Hiển thị khi xem bằng trình duyệt thông thường
+                        <div class="tabs-container">
+                            <div class="tabs">
+                                <button class="tab active" data-tab="fake">
+                                    <i class="fas fa-eye-slash"></i> Mã giả (Fake)
+                                </button>
+                                <button class="tab" data-tab="real">
+                                    <i class="fas fa-shield-alt"></i> Mã thật (Real)
+                                </button>
                             </div>
-                            <div class="editor-container">
-                                <div class="editor-header">
-                                    <span>fake_script.lua</span>
-                                    <div class="editor-actions">
-                                        <button class="neon-btn-small" id="upload-fake">
-                                            <i class="fas fa-upload"></i> Upload
-                                        </button>
-                                        <input type="file" id="fake-file" accept=".lua,.luau,.txt" hidden>
-                                    </div>
+                            
+                            <!-- Fake code tab -->
+                            <div class="tab-content active" id="fake-tab">
+                                <div class="tab-description">
+                                    <i class="fas fa-eye"></i> Hiển thị khi xem bằng trình duyệt thông thường
                                 </div>
-                                <textarea id="content_fake" class="code-editor" placeholder="-- Mã giả sẽ hiển thị khi xem bằng trình duyệt
+                                <div class="editor-container">
+                                    <div class="editor-header">
+                                        <span>fake_script.lua</span>
+                                        <div class="editor-actions">
+                                            <button class="neon-btn-small" id="upload-fake">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <input type="file" id="fake-file" accept=".lua,.luau,.txt" hidden>
+                                        </div>
+                                    </div>
+                                    <textarea id="content_fake" class="code-editor" placeholder="-- Mã giả sẽ hiển thị khi xem bằng trình duyệt
 print('Hello Fake World!')
 for i = 1, 5 do
     print('Fake line ' .. i)
 end"></textarea>
-                            </div>
-                        </div>
-                        
-                        <!-- Real code tab -->
-                        <div class="tab-content" id="real-tab">
-                            <div class="tab-description">
-                                <i class="fas fa-shield-alt"></i> Chỉ hiển thị khi dùng KRNL/Roblox Client
-                            </div>
-                            <div class="editor-container">
-                                <div class="editor-header">
-                                    <span>real_script.lua</span>
-                                    <div class="editor-actions">
-                                        <button class="neon-btn-small" id="upload-real">
-                                            <i class="fas fa-upload"></i> Upload
-                                        </button>
-                                        <input type="file" id="real-file" accept=".lua,.luau,.txt" hidden>
-                                    </div>
                                 </div>
-                                <textarea id="content_real" class="code-editor" placeholder="-- Mã thật chỉ hiển thị với Roblox/KRNL
+                            </div>
+                            
+                            <!-- Real code tab -->
+                            <div class="tab-content" id="real-tab">
+                                <div class="tab-description">
+                                    <i class="fas fa-shield-alt"></i> Chỉ hiển thị khi dùng KRNL/Roblox Client
+                                </div>
+                                <div class="editor-container">
+                                    <div class="editor-header">
+                                        <span>real_script.lua</span>
+                                        <div class="editor-actions">
+                                            <button class="neon-btn-small" id="upload-real">
+                                                <i class="fas fa-upload"></i> Upload
+                                            </button>
+                                            <input type="file" id="real-file" accept=".lua,.luau,.txt" hidden>
+                                        </div>
+                                    </div>
+                                    <textarea id="content_real" class="code-editor" placeholder="-- Mã thật chỉ hiển thị với Roblox/KRNL
 print('Hello Real World!')
 
 -- Ví dụ code Roblox
@@ -158,133 +201,124 @@ local Players = game:GetService('Players')
 local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 character.Humanoid.Health = 100"></textarea>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button id="create-btn" class="neon-btn-primary">
-                            <i class="fas fa-bolt"></i> Tạo snippet
-                        </button>
-                        <button id="reset-btn" class="neon-btn-secondary">
-                            <i class="fas fa-redo"></i> Làm mới
-                        </button>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Kết quả -->
-            <section class="result-section hidden" id="result-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-check-circle"></i> Tạo thành công!</h2>
-                </div>
-                
-                <div class="result-container">
-                    <div class="result-card">
-                        <div class="result-icon">
-                            <i class="fas fa-globe"></i>
-                        </div>
-                        <div class="result-content">
-                            <h3>Link công khai (Fake Code)</h3>
-                            <div class="link-container">
-                                <input type="text" id="public-link" readonly class="link-input">
-                                <button class="copy-btn" data-clipboard-target="#public-link">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <div class="link-description">
-                                Hiển thị mã giả khi truy cập bằng trình duyệt hoặc curl thông thường
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="result-card secret">
-                        <div class="result-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="result-content">
-                            <h3>Link bí mật (Real Code)</h3>
-                            <div class="link-container">
-                                <input type="text" id="secret-link" readonly class="link-input">
-                                <button class="copy-btn" data-clipboard-target="#secret-link">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <div class="link-description">
-                                Hiển thị mã thật với Roblox Client hoặc curl có header đặc biệt
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="usage-examples">
-                        <h3><i class="fas fa-code"></i> Cách sử dụng</h3>
-                        <div class="example-grid">
-                            <div class="example-card">
-                                <h4><i class="fas fa-desktop"></i> Trình duyệt</h4>
-                                <pre><code>https://anura-kun.vercel.app/raw/ten-script
-→ Hiển thị mã giả</code></pre>
-                            </div>
-                            <div class="example-card">
-                                <h4><i class="fas fa-terminal"></i> Termux</h4>
-                                <pre><code>curl https://anura-kun.vercel.app/raw/ten-script
-→ Hiển thị mã giả</code></pre>
-                            </div>
-                            <div class="example-card">
-                                <h4><i class="fas fa-terminal"></i> KRNL</h4>
-                                <pre><code>curl -H "X-Client-Type: krnl" \
-  https://anura-kun.vercel.app/raw/ten-script
-→ Hiển thị mã thật</code></pre>
-                            </div>
-                            <div class="example-card">
-                                <h4><i class="fas fa-gamepad"></i> Roblox</h4>
-                                <pre><code>loadstring(game:HttpGet(
-  "https://anura-kun.vercel.app/raw/ten-script"
-))()
-→ Hiển thị mã thật</code></pre>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            
-            <!-- Danh sách snippet -->
-            <section class="snippets-section">
-                <div class="section-header">
-                    <h2><i class="fas fa-history"></i> Snippet gần đây</h2>
-                    <button id="refresh-snippets" class="neon-btn-small">
-                        <i class="fas fa-sync-alt"></i> Làm mới
-                    </button>
-                </div>
-                
-                <div class="snippets-container">
-                    <div class="login-required hidden" id="snippetsLoginRequired">
-                        <div class="login-prompt">
-                            <i class="fas fa-lock"></i>
-                            <h3>Cần đăng nhập để xem snippet</h3>
-                            <button id="promptLoginBtn2" class="neon-btn-primary">
-                                <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                        
+                        <div class="form-actions">
+                            <button id="create-btn" class="neon-btn-primary">
+                                <i class="fas fa-bolt"></i> Tạo snippet
+                            </button>
+                            <button id="reset-btn" class="neon-btn-secondary">
+                                <i class="fas fa-redo"></i> Làm mới
                             </button>
                         </div>
                     </div>
+                </section>
+                
+                <!-- Kết quả -->
+                <section class="result-section hidden" id="result-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-check-circle"></i> Tạo thành công!</h2>
+                    </div>
                     
-                    <div class="snippets-list" id="snippets-list">
-                        <div class="loading-snippet">
-                            <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                    <div class="result-container">
+                        <div class="result-card">
+                            <div class="result-icon">
+                                <i class="fas fa-globe"></i>
+                            </div>
+                            <div class="result-content">
+                                <h3>Link công khai (Fake Code)</h3>
+                                <div class="link-container">
+                                    <input type="text" id="public-link" readonly class="link-input">
+                                    <button class="copy-btn" data-clipboard-target="#public-link">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="link-description">
+                                    Hiển thị mã giả khi truy cập bằng trình duyệt hoặc curl thông thường
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="result-card secret">
+                            <div class="result-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="result-content">
+                                <h3>Link bí mật (Real Code)</h3>
+                                <div class="link-container">
+                                    <input type="text" id="secret-link" readonly class="link-input">
+                                    <button class="copy-btn" data-clipboard-target="#secret-link">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                </div>
+                                <div class="link-description">
+                                    Hiển thị mã thật với Roblox Client hoặc curl có header đặc biệt
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="usage-examples">
+                            <h3><i class="fas fa-code"></i> Cách sử dụng</h3>
+                            <div class="example-grid">
+                                <div class="example-card">
+                                    <h4><i class="fas fa-desktop"></i> Trình duyệt</h4>
+                                    <pre><code>https://anura-kun.vercel.app/raw/ten-script
+→ Hiển thị mã giả</code></pre>
+                                </div>
+                                <div class="example-card">
+                                    <h4><i class="fas fa-terminal"></i> Termux</h4>
+                                    <pre><code>curl https://anura-kun.vercel.app/raw/ten-script
+→ Hiển thị mã giả</code></pre>
+                                </div>
+                                <div class="example-card">
+                                    <h4><i class="fas fa-terminal"></i> KRNL</h4>
+                                    <pre><code>curl -H "X-Client-Type: krnl" \
+  https://anura-kun.vercel.app/raw/ten-script
+→ Hiển thị mã thật</code></pre>
+                                </div>
+                                <div class="example-card">
+                                    <h4><i class="fas fa-gamepad"></i> Roblox</h4>
+                                    <pre><code>loadstring(game:HttpGet(
+  "https://anura-kun.vercel.app/raw/ten-script"
+))()
+→ Hiển thị mã thật</code></pre>
+                                </div>
+                            </div>
                         </div>
                     </div>
+                </section>
+                
+                <!-- Danh sách snippet -->
+                <section class="snippets-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-history"></i> Snippet gần đây</h2>
+                        <button id="refresh-snippets" class="neon-btn-small">
+                            <i class="fas fa-sync-alt"></i> Làm mới
+                        </button>
+                    </div>
+                    
+                    <div class="snippets-container">
+                        <div class="snippets-list" id="snippets-list">
+                            <div class="loading-snippet">
+                                <i class="fas fa-spinner fa-spin"></i> Đang tải...
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+            
+            <!-- Footer -->
+            <footer class="neon-footer">
+                <p><strong>Pastebin NeOn</strong> © 2024 - <span class="domain">anura-kun.vercel.app</span></p>
+                <div class="footer-links">
+                    <span><i class="fas fa-user-shield"></i> Đã đăng nhập</span>
+                    <span><i class="fas fa-shield-alt"></i> Bảo mật kép</span>
+                    <span><i class="fas fa-database"></i> Dữ liệu riêng tư</span>
                 </div>
-            </section>
-        </main>
-        
-        <!-- Footer -->
-        <footer class="neon-footer">
-            <p><strong>Pastebin NeOn</strong> © 2024 - <span class="domain">anura-kun.vercel.app</span></p>
-            <div class="footer-links">
-                <span><i class="fas fa-user"></i> Tài khoản: anura123</span>
-                <span><i class="fas fa-shield-alt"></i> Bảo mật kép</span>
-                <span><i class="fas fa-mobile-alt"></i> Responsive</span>
-            </div>
-        </footer>
+            </footer>
+        </div>
     </div>
 
     <script src="script.js"></script>
