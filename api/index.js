@@ -52,9 +52,14 @@ module.exports = async (req, res) => {
         return handleGetSnippets(req, res, db);
     }
     
+    // ====== THÊM PHẦN NÀY ====== //
     if (req.method === 'GET' && path === '/api/check-auth') {
-        return res.json({ authenticated: isLoggedIn });
+        return res.json({ 
+            authenticated: isLoggedIn,
+            username: isLoggedIn ? 'anura123' : null
+        });
     }
+    // =========================== //
     
     // Default 404
     res.status(404).json({ error: 'Not found' });
@@ -66,21 +71,35 @@ async function handleLogin(req, res, db) {
         const body = await parseBody(req);
         const { username, password } = body;
         
-        if (username === 'anura123' && password === 'anura123') {
+        // Kiểm tra thông tin đăng nhập
+        const isValid = await db.authenticate(username, password);
+        
+        if (isValid) {
             // Set cookie
             res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
                 httpOnly: true,
                 maxAge: 60 * 60 * 24 * 7, // 1 week
                 path: '/',
-                sameSite: 'lax'
+                sameSite: 'lax',
+                secure: process.env.NODE_ENV === 'production'
             }));
             
-            return res.json({ success: true });
+            return res.json({ 
+                success: true,
+                username: username 
+            });
         }
         
-        res.status(401).json({ error: 'Invalid credentials' });
+        res.status(401).json({ 
+            success: false,
+            error: 'Invalid credentials' 
+        });
     } catch (error) {
-        res.status(400).json({ error: 'Invalid request' });
+        console.error('Login error:', error);
+        res.status(400).json({ 
+            success: false,
+            error: 'Invalid request' 
+        });
     }
 }
 
@@ -102,6 +121,10 @@ async function handleCreateSnippet(req, res, db) {
         const body = await parseBody(req);
         const { slug, content_fake, content_real } = body;
         
+        console.log('Creating snippet:', slug);
+        console.log('Fake content length:', content_fake?.length || 0);
+        console.log('Real content length:', content_real?.length || 0);
+        
         if (!slug || !content_fake || !content_real) {
             return res.status(400).json({ error: 'Missing required fields' });
         }
@@ -115,6 +138,10 @@ async function handleCreateSnippet(req, res, db) {
         
         const result = await db.createSnippet(slug, content_fake, content_real);
         
+        // Debug: Kiểm tra snippet đã được tạo chưa
+        const allSnippets = await db.getAllSnippets();
+        console.log('All snippets after creation:', allSnippets.map(s => s.slug));
+        
         if (!result.success) {
             return res.status(400).json({ error: result.error });
         }
@@ -123,6 +150,11 @@ async function handleCreateSnippet(req, res, db) {
         const host = req.headers.host || 'anura-kun.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
+        
+        console.log('Created URLs:', {
+            raw_url: `${baseUrl}/raw/${slug}`,
+            real_url: `${baseUrl}/raw/${slug}?secret=${result.secretKey}`
+        });
         
         res.json({
             success: true,
