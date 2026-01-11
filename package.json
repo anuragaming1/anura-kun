@@ -1,0 +1,19 @@
+{
+  "name": "anura-kun",
+  "version": "1.0.0",
+  "description": "Secure pastebin for Lua/Luau with dual security - Deploy on Vercel",
+  "main": "api/index.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node api/index.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.6",
+    "sqlite": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "cookie": "^0.5.0"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
