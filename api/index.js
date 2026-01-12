@@ -13,71 +13,78 @@ module.exports = async (req, res) => {
         return res.status(200).end();
     }
     
-    const db = await getDatabase();
-    const path = req.url.split('?')[0];
-    
-    // Parse cookies
-    const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
-    const sessionToken = cookies.session_token;
-    const isLoggedIn = sessionToken === 'anura123_authenticated';
-    
-    console.log('API Request:', { path, method: req.method, isLoggedIn });
-    
-    // Routes
-    if (req.method === 'POST' && path === '/api/login') {
-        return handleLogin(req, res, db);
-    }
-    
-    if (req.method === 'POST' && path === '/api/logout') {
-        return handleLogout(req, res);
-    }
-    
-    if (req.method === 'POST' && path === '/api/create') {
-        if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+    try {
+        const db = await getDatabase();
+        const path = req.url.split('?')[0];
+        
+        // Parse cookies
+        const cookies = req.headers.cookie ? cookie.parse(req.headers.cookie) : {};
+        const sessionToken = cookies.session_token;
+        const isLoggedIn = sessionToken === 'anura123_authenticated';
+        
+        console.log('API Request:', { path, method: req.method, isLoggedIn });
+        
+        // Routes
+        if (req.method === 'POST' && path === '/api/login') {
+            return await handleLogin(req, res, db);
         }
-        return handleCreateSnippet(req, res, db);
-    }
-    
-    if (req.method === 'GET' && path.startsWith('/api/check/')) {
-        if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+        
+        if (req.method === 'POST' && path === '/api/logout') {
+            return handleLogout(req, res);
         }
-        const slug = path.split('/api/check/')[1];
-        return handleCheckSlug(req, res, db, slug);
-    }
-    
-    if (req.method === 'GET' && path === '/api/snippets') {
-        if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+        
+        if (req.method === 'POST' && path === '/api/create') {
+            if (!isLoggedIn) {
+                return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+            }
+            return await handleCreateSnippet(req, res, db);
         }
-        return handleGetSnippets(req, res, db);
-    }
-    
-    if (req.method === 'GET' && path === '/api/check-auth') {
-        if (isLoggedIn) {
-            // Lấy username từ database
-            const user = await db.db.get('SELECT username FROM users WHERE id = 1');
-            return res.json({ 
-                authenticated: true, 
-                username: user ? user.username : 'admin' 
-            });
+        
+        if (req.method === 'GET' && path.startsWith('/api/check/')) {
+            if (!isLoggedIn) {
+                return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+            }
+            const slug = path.split('/api/check/')[1];
+            return await handleCheckSlug(req, res, db, slug);
         }
-        return res.json({ authenticated: false });
+        
+        if (req.method === 'GET' && path === '/api/snippets') {
+            if (!isLoggedIn) {
+                return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
+            }
+            return await handleGetSnippets(req, res, db);
+        }
+        
+        if (req.method === 'GET' && path === '/api/check-auth') {
+            if (isLoggedIn) {
+                return res.json({ 
+                    authenticated: true, 
+                    username: 'anura123' 
+                });
+            }
+            return res.json({ authenticated: false });
+        }
+        
+        // Default 404
+        res.status(404).json({ error: 'Not found' });
+    } catch (error) {
+        console.error('API Error:', error);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message 
+        });
     }
-    
-    // Default 404
-    res.status(404).json({ error: 'Not found' });
 };
 
-// Login handler
+// Login handler - SỬA LẠI PHẦN NÀY
 async function handleLogin(req, res, db) {
     try {
         const body = await parseBody(req);
         const { username, password } = body;
         
-        console.log('Login attempt:', username);
+        console.log('Login attempt for user:', username);
         
+        // Simple authentication (không dùng bcrypt để tránh lỗi trên Vercel)
         if (username === 'anura123' && password === 'anura123') {
             // Set cookie
             res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
@@ -85,22 +92,50 @@ async function handleLogin(req, res, db) {
                 maxAge: 60 * 60 * 24 * 7, // 1 week
                 path: '/',
                 sameSite: 'lax',
-                secure: process.env.NODE_ENV === 'production'
+                secure: true
             }));
             
             return res.json({ 
                 success: true,
                 username: username
             });
+        } else {
+            // Nếu muốn dùng bcrypt, comment phần trên và dùng phần dưới
+            /*
+            const isValid = await db.authenticate(username, password);
+            if (isValid) {
+                res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
+                    httpOnly: true,
+                    maxAge: 60 * 60 * 24 * 7,
+                    path: '/',
+                    sameSite: 'lax',
+                    secure: true
+                }));
+                
+                return res.json({ 
+                    success: true,
+                    username: username
+                });
+            } else {
+                res.status(401).json({ 
+                    success: false,
+                    error: 'Sai tên đăng nhập hoặc mật khẩu' 
+                });
+            }
+            */
+            
+            // Fallback: luôn trả về lỗi nếu không phải anura123/anura123
+            res.status(401).json({ 
+                success: false,
+                error: 'Sai tên đăng nhập hoặc mật khẩu' 
+            });
         }
-        
-        res.status(401).json({ 
-            success: false,
-            error: 'Sai tên đăng nhập hoặc mật khẩu' 
-        });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(400).json({ error: 'Invalid request' });
+        res.status(500).json({ 
+            error: 'Internal server error',
+            message: error.message 
+        });
     }
 }
 
@@ -111,7 +146,7 @@ function handleLogout(req, res) {
         expires: new Date(0),
         path: '/',
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        secure: true
     }));
     
     res.json({ success: true });
@@ -165,8 +200,13 @@ async function handleCheckSlug(req, res, db, slug) {
         return res.status(400).json({ error: 'Slug is required' });
     }
     
-    const available = await db.checkSlugAvailable(slug);
-    res.json({ available });
+    try {
+        const available = await db.checkSlugAvailable(slug);
+        res.json({ available });
+    } catch (error) {
+        console.error('Check slug error:', error);
+        res.status(500).json({ error: 'Database error' });
+    }
 }
 
 // Get snippets handler
