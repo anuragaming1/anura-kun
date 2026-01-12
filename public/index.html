@@ -10,7 +10,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- Modal đăng nhập luôn hiển thị đầu tiên -->
+        <!-- Modal đăng nhập -->
         <div id="loginModal" class="modal">
             <div class="modal-content neon-modal">
                 <div class="modal-header">
@@ -96,7 +96,7 @@
             </div>
         </div>
 
-        <!-- Main Content (ban đầu ẩn) -->
+        <!-- Main Content -->
         <main class="main-content hidden" id="mainContent">
             <!-- Tạo snippet -->
             <section class="create-section" id="createSection">
@@ -159,10 +159,7 @@
                                     </div>
                                 </div>
                                 <textarea id="content_fake" class="code-editor" placeholder="-- Mã giả sẽ hiển thị khi xem bằng trình duyệt
-print('Hello Fake World!')
-for i = 1, 5 do
-    print('Fake line ' .. i)
-end"></textarea>
+print('Hello Fake World!')"></textarea>
                             </div>
                         </div>
                         
@@ -182,13 +179,7 @@ end"></textarea>
                                     </div>
                                 </div>
                                 <textarea id="content_real" class="code-editor" placeholder="-- Mã thật chỉ hiển thị với Roblox/KRNL
-print('Hello Real World!')
-
--- Ví dụ code Roblox
-local Players = game:GetService('Players')
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-character.Humanoid.Health = 100"></textarea>
+print('Hello Real World!')"></textarea>
                             </div>
                         </div>
                     </div>
@@ -204,7 +195,7 @@ character.Humanoid.Health = 100"></textarea>
                 </div>
             </section>
             
-            <!-- Kết quả -->
+            <!-- Kết quả - 1 LINK DUY NHẤT -->
             <section class="result-section hidden" id="result-section">
                 <div class="section-header">
                     <h2><i class="fas fa-check-circle"></i> Tạo thành công!</h2>
@@ -213,10 +204,10 @@ character.Humanoid.Health = 100"></textarea>
                 <div class="result-container">
                     <div class="result-card">
                         <div class="result-icon">
-                            <i class="fas fa-globe"></i>
+                            <i class="fas fa-link"></i>
                         </div>
                         <div class="result-content">
-                            <h3>Link công khai (Fake Code)</h3>
+                            <h3>Link duy nhất</h3>
                             <div class="link-container">
                                 <input type="text" id="public-link" readonly class="link-input">
                                 <button class="copy-btn" data-clipboard-target="#public-link">
@@ -224,53 +215,32 @@ character.Humanoid.Health = 100"></textarea>
                                 </button>
                             </div>
                             <div class="link-description">
-                                Hiển thị mã giả khi truy cập bằng trình duyệt hoặc curl thông thường
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="result-card secret">
-                        <div class="result-icon">
-                            <i class="fas fa-shield-alt"></i>
-                        </div>
-                        <div class="result-content">
-                            <h3>Link bí mật (Real Code)</h3>
-                            <div class="link-container">
-                                <input type="text" id="secret-link" readonly class="link-input">
-                                <button class="copy-btn" data-clipboard-target="#secret-link">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            </div>
-                            <div class="link-description">
-                                Hiển thị mã thật với Roblox Client hoặc curl có header đặc biệt
+                                <strong>1 link duy nhất</strong>, tự động hiển thị:<br>
+                                • <strong>Mã giả</strong> khi truy cập bằng trình duyệt thông thường<br>
+                                • <strong>Mã thật</strong> khi truy cập bằng Roblox/KRNL Client
                             </div>
                         </div>
                     </div>
                     
                     <div class="usage-examples">
-                        <h3><i class="fas fa-code"></i> Cách sử dụng</h3>
+                        <h3><i class="fas fa-code"></i> Cách sử dụng (1 link duy nhất)</h3>
                         <div class="example-grid">
                             <div class="example-card">
-                                <h4><i class="fas fa-desktop"></i> Trình duyệt</h4>
+                                <h4><i class="fas fa-desktop"></i> Trình duyệt thường</h4>
                                 <pre><code>https://anura-kun.vercel.app/raw/ten-script
 → Hiển thị mã giả</code></pre>
                             </div>
                             <div class="example-card">
-                                <h4><i class="fas fa-terminal"></i> Termux</h4>
-                                <pre><code>curl https://anura-kun.vercel.app/raw/ten-script
-→ Hiển thị mã giả</code></pre>
-                            </div>
-                            <div class="example-card">
-                                <h4><i class="fas fa-terminal"></i> KRNL</h4>
-                                <pre><code>curl -H "X-Client-Type: krnl" \
-  https://anura-kun.vercel.app/raw/ten-script
-→ Hiển thị mã thật</code></pre>
-                            </div>
-                            <div class="example-card">
-                                <h4><i class="fas fa-gamepad"></i> Roblox</h4>
+                                <h4><i class="fas fa-gamepad"></i> Roblox Client</h4>
                                 <pre><code>loadstring(game:HttpGet(
-  "https://anura-kun.vercel.app/raw/ten-script"
+    "https://anura-kun.vercel.app/raw/ten-script"
 ))()
+→ Tự động hiển thị mã thật</code></pre>
+                            </div>
+                            <div class="example-card">
+                                <h4><i class="fas fa-terminal"></i> KRNL/Termux</h4>
+                                <pre><code>curl -H "X-Client-Type: krnl" \
+    https://anura-kun.vercel.app/raw/ten-script
 → Hiển thị mã thật</code></pre>
                             </div>
                         </div>
