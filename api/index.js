@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true);
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'X-Client-Type, Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'X-Client-Type, Content-Type, Cookie');
     
     // Handle preflight
     if (req.method === 'OPTIONS') {
@@ -21,6 +21,8 @@ module.exports = async (req, res) => {
     const sessionToken = cookies.session_token;
     const isLoggedIn = sessionToken === 'anura123_authenticated';
     
+    console.log('API Request:', { path, method: req.method, isLoggedIn });
+    
     // Routes
     if (req.method === 'POST' && path === '/api/login') {
         return handleLogin(req, res, db);
@@ -32,14 +34,14 @@ module.exports = async (req, res) => {
     
     if (req.method === 'POST' && path === '/api/create') {
         if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Please login first' });
+            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
         }
         return handleCreateSnippet(req, res, db);
     }
     
     if (req.method === 'GET' && path.startsWith('/api/check/')) {
         if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Please login first' });
+            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
         }
         const slug = path.split('/api/check/')[1];
         return handleCheckSlug(req, res, db, slug);
@@ -47,19 +49,22 @@ module.exports = async (req, res) => {
     
     if (req.method === 'GET' && path === '/api/snippets') {
         if (!isLoggedIn) {
-            return res.status(401).json({ error: 'Please login first' });
+            return res.status(401).json({ error: 'Vui lòng đăng nhập trước' });
         }
         return handleGetSnippets(req, res, db);
     }
     
-    // ====== THÊM PHẦN NÀY ====== //
     if (req.method === 'GET' && path === '/api/check-auth') {
-        return res.json({ 
-            authenticated: isLoggedIn,
-            username: isLoggedIn ? 'anura123' : null
-        });
+        if (isLoggedIn) {
+            // Lấy username từ database
+            const user = await db.db.get('SELECT username FROM users WHERE id = 1');
+            return res.json({ 
+                authenticated: true, 
+                username: user ? user.username : 'admin' 
+            });
+        }
+        return res.json({ authenticated: false });
     }
-    // =========================== //
     
     // Default 404
     res.status(404).json({ error: 'Not found' });
@@ -71,10 +76,9 @@ async function handleLogin(req, res, db) {
         const body = await parseBody(req);
         const { username, password } = body;
         
-        // Kiểm tra thông tin đăng nhập
-        const isValid = await db.authenticate(username, password);
+        console.log('Login attempt:', username);
         
-        if (isValid) {
+        if (username === 'anura123' && password === 'anura123') {
             // Set cookie
             res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
                 httpOnly: true,
@@ -86,20 +90,17 @@ async function handleLogin(req, res, db) {
             
             return res.json({ 
                 success: true,
-                username: username 
+                username: username
             });
         }
         
         res.status(401).json({ 
             success: false,
-            error: 'Invalid credentials' 
+            error: 'Sai tên đăng nhập hoặc mật khẩu' 
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(400).json({ 
-            success: false,
-            error: 'Invalid request' 
-        });
+        res.status(400).json({ error: 'Invalid request' });
     }
 }
 
@@ -109,7 +110,8 @@ function handleLogout(req, res) {
         httpOnly: true,
         expires: new Date(0),
         path: '/',
-        sameSite: 'lax'
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
     }));
     
     res.json({ success: true });
@@ -122,8 +124,6 @@ async function handleCreateSnippet(req, res, db) {
         const { slug, content_fake, content_real } = body;
         
         console.log('Creating snippet:', slug);
-        console.log('Fake content length:', content_fake?.length || 0);
-        console.log('Real content length:', content_real?.length || 0);
         
         if (!slug || !content_fake || !content_real) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -138,10 +138,6 @@ async function handleCreateSnippet(req, res, db) {
         
         const result = await db.createSnippet(slug, content_fake, content_real);
         
-        // Debug: Kiểm tra snippet đã được tạo chưa
-        const allSnippets = await db.getAllSnippets();
-        console.log('All snippets after creation:', allSnippets.map(s => s.slug));
-        
         if (!result.success) {
             return res.status(400).json({ error: result.error });
         }
@@ -150,11 +146,6 @@ async function handleCreateSnippet(req, res, db) {
         const host = req.headers.host || 'anura-kun.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
-        
-        console.log('Created URLs:', {
-            raw_url: `${baseUrl}/raw/${slug}`,
-            real_url: `${baseUrl}/raw/${slug}?secret=${result.secretKey}`
-        });
         
         res.json({
             success: true,
@@ -180,8 +171,13 @@ async function handleCheckSlug(req, res, db, slug) {
 
 // Get snippets handler
 async function handleGetSnippets(req, res, db) {
-    const snippets = await db.getRecentSnippets(50);
-    res.json(snippets);
+    try {
+        const snippets = await db.getRecentSnippets(50);
+        res.json(snippets);
+    } catch (error) {
+        console.error('Get snippets error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
 }
 
 // Helper to parse request body
