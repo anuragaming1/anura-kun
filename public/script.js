@@ -15,6 +15,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const usernameDisplay = document.getElementById('usernameDisplay');
     const logoutBtn = document.getElementById('logoutBtn');
     const footer = document.getElementById('footer');
+    const slugInput = document.getElementById('slug');
+    const checkSlugBtn = document.getElementById('check-slug');
+    const slugStatus = document.getElementById('slug-status');
     
     // Khởi tạo - hiển thị màn hình chặn và modal đăng nhập
     mainContent.classList.add('hidden');
@@ -65,7 +68,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ username, password })
+                body: JSON.stringify({ username, password }),
+                credentials: 'include'
             });
             
             const data = await response.json();
@@ -112,7 +116,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check authentication status
     async function checkAuthStatus() {
         try {
-            const response = await fetch('/api/check-auth');
+            const response = await fetch('/api/check-auth', {
+                credentials: 'include'
+            });
+            
             if (response.ok) {
                 const data = await response.json();
                 if (data.authenticated && data.username) {
@@ -126,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } catch (error) {
-            console.log('Không thể kiểm tra trạng thái đăng nhập');
+            console.log('Không thể kiểm tra trạng thái đăng nhập:', error);
         }
     }
     
@@ -185,11 +192,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('password').value = '';
                 
                 // Reset snippet form
-                if (document.getElementById('slug')) {
-                    document.getElementById('slug').value = '';
+                if (slugInput) {
+                    slugInput.value = '';
                     document.getElementById('content_fake').value = '';
                     document.getElementById('content_real').value = '';
-                    document.getElementById('slug-status').textContent = '';
+                    if (slugStatus) slugStatus.textContent = '';
                     document.getElementById('result-section').classList.add('hidden');
                     isSlugAvailable = false;
                 }
@@ -322,17 +329,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Slug checking
     function setupSlugCheck() {
-        const slugInput = document.getElementById('slug');
-        const checkSlugBtn = document.getElementById('check-slug');
-        const slugStatus = document.getElementById('slug-status');
-        
         if (!slugInput || !checkSlugBtn) return;
         
         checkSlugBtn.addEventListener('click', checkSlug);
         slugInput.addEventListener('input', function() {
             currentSlug = this.value.trim();
-            slugStatus.textContent = '';
-            slugStatus.className = 'status-message';
+            if (slugStatus) {
+                slugStatus.textContent = '';
+                slugStatus.className = 'status-message';
+            }
             isSlugAvailable = false;
         });
         
@@ -352,14 +357,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const slug = slugInput.value.trim();
             
             if (!slug) {
-                slugStatus.textContent = 'Vui lòng nhập tên đường dẫn';
-                slugStatus.style.color = '#ff5555';
+                if (slugStatus) {
+                    slugStatus.textContent = 'Vui lòng nhập tên đường dẫn';
+                    slugStatus.style.color = '#ff5555';
+                }
                 return;
             }
             
             if (!/^[a-z0-9-_]+$/i.test(slug)) {
-                slugStatus.textContent = 'Chỉ cho phép chữ, số, gạch ngang và gạch dưới';
-                slugStatus.style.color = '#ff5555';
+                if (slugStatus) {
+                    slugStatus.textContent = 'Chỉ cho phép chữ, số, gạch ngang và gạch dưới';
+                    slugStatus.style.color = '#ff5555';
+                }
                 return;
             }
             
@@ -367,20 +376,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 const response = await fetch(`/api/check/${slug}`, {
                     credentials: 'include'
                 });
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                
                 const data = await response.json();
                 
-                if (data.available) {
-                    slugStatus.textContent = '✓ Tên đường dẫn có sẵn';
-                    slugStatus.style.color = '#00ff00';
-                    isSlugAvailable = true;
-                } else {
-                    slugStatus.textContent = '✗ Tên đường dẫn đã tồn tại';
-                    slugStatus.style.color = '#ff5555';
-                    isSlugAvailable = false;
+                if (slugStatus) {
+                    if (data.available) {
+                        slugStatus.textContent = '✓ Tên đường dẫn có sẵn';
+                        slugStatus.style.color = '#00ff00';
+                        isSlugAvailable = true;
+                    } else {
+                        slugStatus.textContent = '✗ Tên đường dẫn đã tồn tại';
+                        slugStatus.style.color = '#ff5555';
+                        isSlugAvailable = false;
+                    }
                 }
             } catch (error) {
-                slugStatus.textContent = 'Lỗi kết nối server';
-                slugStatus.style.color = '#ff5555';
+                console.error('Check slug error:', error);
+                if (slugStatus) {
+                    slugStatus.textContent = 'Lỗi kết nối server';
+                    slugStatus.style.color = '#ff5555';
+                }
             }
         }
     }
@@ -465,6 +484,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     showNotification('Lỗi: ' + result.error, 'error');
                 }
             } catch (error) {
+                console.error('Create snippet error:', error);
                 showNotification('Lỗi kết nối server', 'error');
             } finally {
                 // Reset button
@@ -486,11 +506,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            document.getElementById('slug').value = '';
-            document.getElementById('content_fake').value = '';
-            document.getElementById('content_real').value = '';
-            document.getElementById('slug-status').textContent = '';
-            document.getElementById('result-section').classList.add('hidden');
+            if (slugInput) slugInput.value = '';
+            if (document.getElementById('content_fake')) document.getElementById('content_fake').value = '';
+            if (document.getElementById('content_real')) document.getElementById('content_real').value = '';
+            if (slugStatus) slugStatus.textContent = '';
+            if (document.getElementById('result-section')) document.getElementById('result-section').classList.add('hidden');
             isSlugAvailable = false;
             showNotification('Đã làm mới form', 'info');
         });
@@ -551,6 +571,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/api/snippets', {
                 credentials: 'include'
             });
+            
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            
             const snippets = await response.json();
             
             if (!snippets || snippets.length === 0) {
@@ -586,6 +611,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 snippetsList.appendChild(snippetElement);
             });
         } catch (error) {
+            console.error('Load snippets error:', error);
             snippetsList.innerHTML = '<div class="loading-snippet">Lỗi khi tải dữ liệu</div>';
         }
     }
