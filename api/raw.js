@@ -6,10 +6,10 @@ module.exports = async (req, res) => {
         
         // Lấy slug từ URL
         const urlPath = req.url;
-        console.log('Raw URL requested:', urlPath);
+        console.log('📄 Raw URL requested:', urlPath);
         
         // Extract slug từ path /raw/[slug]
-        let slug;
+        let slug = '';
         if (urlPath.startsWith('/raw/')) {
             slug = urlPath.substring(5); // Bỏ "/raw/"
             
@@ -20,32 +20,31 @@ module.exports = async (req, res) => {
             }
         }
         
-        console.log('Extracted slug:', slug);
+        console.log('🔍 Extracted slug:', slug);
         
         if (!slug) {
             return res.status(400).send('Missing slug parameter');
         }
         
-        // Debug: Hiển thị tất cả snippets
-        const allSnippets = await db.getAllSnippets();
-        console.log('All snippets in DB:', allSnippets.map(s => s.slug));
-        
+        // Lấy snippet từ database
         const snippet = await db.getSnippet(slug);
         
         if (!snippet) {
-            console.log(`Snippet "${slug}" not found in database`);
+            console.log('❌ Snippet not found:', slug);
+            const allSnippets = await db.getAllSnippets();
+            console.log('📊 All snippets in DB:', allSnippets.map(s => s.slug));
             return res.status(404).send(`Snippet "${slug}" not found`);
         }
+        
+        console.log('✅ Snippet found:', slug);
         
         // Increment view count
         await db.incrementViews(slug);
         
-        // Check if client should see real code
-        const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
-        const secret = urlParams.get('secret');
-        const shouldShowRealCode = checkForRealCodeClient(req, secret, snippet.secret_key);
+        // Phân biệt client - 1 LINK DUY NHẤT
+        const shouldShowRealCode = checkForRealCodeClient(req, snippet.secret_key);
         
-        console.log('Should show real code?', shouldShowRealCode);
+        console.log('🎯 Should show real code?', shouldShowRealCode);
         
         // Set content type
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -59,18 +58,23 @@ module.exports = async (req, res) => {
             res.setHeader('X-Real-Content', 'true');
         }
         
-        // Send appropriate content
+        // Send appropriate content - 1 LINK DUY NHẤT
         const content = shouldShowRealCode ? snippet.content_real : snippet.content_fake;
-        console.log('Sending content length:', content.length);
+        console.log('📤 Sending content, length:', content.length);
         res.send(content);
         
     } catch (error) {
-        console.error('Error in raw endpoint:', error);
+        console.error('💥 Error in raw endpoint:', error);
         res.status(500).send('Internal server error');
     }
 };
 
-function checkForRealCodeClient(req, secret, snippetSecret) {
+function checkForRealCodeClient(req, snippetSecret) {
+    // Lấy query parameters
+    const url = new URL(req.url, `http://${req.headers.host}`);
+    const secret = url.searchParams.get('secret');
+    const client = url.searchParams.get('client');
+    
     // Check secret key
     if (secret && secret === snippetSecret) {
         return true;
@@ -78,21 +82,20 @@ function checkForRealCodeClient(req, secret, snippetSecret) {
     
     // Check headers for special clients
     const clientType = req.headers['x-client-type'] || '';
-    const userAgent = req.headers['user-agent'] || '';
+    const userAgent = (req.headers['user-agent'] || '').toLowerCase();
     
-    console.log('Client headers:', { clientType, userAgent });
-    
-    // Roblox or KRNL client
-    if (clientType.toLowerCase() === 'krnl' || 
-        clientType.toLowerCase() === 'roblox' ||
-        (userAgent && userAgent.toLowerCase().includes('roblox'))) {
+    // Roblox Client
+    if (userAgent.includes('roblox')) {
         return true;
     }
     
-    // Check query parameter
-    const urlParams = new URLSearchParams(req.url.split('?')[1] || '');
-    const clientParam = urlParams.get('client');
-    if (clientParam === 'krnl' || clientParam === 'roblox') {
+    // KRNL Client
+    if (clientType.toLowerCase() === 'krnl') {
+        return true;
+    }
+    
+    // Client parameter trong URL
+    if (client === 'krnl' || client === 'roblox') {
         return true;
     }
     
