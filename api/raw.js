@@ -6,7 +6,7 @@ module.exports = async (req, res) => {
         
         // Lấy slug từ URL
         const urlPath = req.url;
-        console.log('📄 Raw URL requested:', urlPath);
+        console.log('🌐 Raw URL requested:', urlPath);
         
         // Extract slug từ path /raw/[slug]
         let slug = '';
@@ -20,9 +20,9 @@ module.exports = async (req, res) => {
             }
         }
         
-        console.log('🔍 Extracted slug:', slug);
+        console.log('🎯 Extracted slug:', slug);
         
-        if (!slug) {
+        if (!slug || slug === '[slug]') {
             return res.status(400).send('Missing slug parameter');
         }
         
@@ -31,8 +31,11 @@ module.exports = async (req, res) => {
         
         if (!snippet) {
             console.log('❌ Snippet not found:', slug);
+            
+            // Debug: Hiển thị tất cả snippets
             const allSnippets = await db.getAllSnippets();
-            console.log('📊 All snippets in DB:', allSnippets.map(s => s.slug));
+            console.log('📊 All snippets in database:', allSnippets.map(s => s.slug));
+            
             return res.status(404).send(`Snippet "${slug}" not found`);
         }
         
@@ -44,7 +47,7 @@ module.exports = async (req, res) => {
         // Phân biệt client - 1 LINK DUY NHẤT
         const shouldShowRealCode = checkForRealCodeClient(req, snippet.secret_key);
         
-        console.log('🎯 Should show real code?', shouldShowRealCode);
+        console.log('🎭 Should show real code?', shouldShowRealCode);
         
         // Set content type
         res.setHeader('Content-Type', 'text/plain; charset=utf-8');
@@ -65,7 +68,7 @@ module.exports = async (req, res) => {
         
     } catch (error) {
         console.error('💥 Error in raw endpoint:', error);
-        res.status(500).send('Internal server error');
+        res.status(500).send('Internal server error: ' + error.message);
     }
 };
 
@@ -83,6 +86,13 @@ function checkForRealCodeClient(req, snippetSecret) {
     // Check headers for special clients
     const clientType = req.headers['x-client-type'] || '';
     const userAgent = (req.headers['user-agent'] || '').toLowerCase();
+    
+    console.log('🔍 Client detection:', {
+        clientType,
+        userAgent: userAgent.substring(0, 50),
+        clientParam: client,
+        hasSecret: !!secret
+    });
     
     // Roblox Client
     if (userAgent.includes('roblox')) {
