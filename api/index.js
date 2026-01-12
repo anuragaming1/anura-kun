@@ -76,7 +76,7 @@ module.exports = async (req, res) => {
     }
 };
 
-// Login handler - SỬA LẠI PHẦN NÀY
+// Login handler
 async function handleLogin(req, res, db) {
     try {
         const body = await parseBody(req);
@@ -84,7 +84,7 @@ async function handleLogin(req, res, db) {
         
         console.log('Login attempt for user:', username);
         
-        // Simple authentication (không dùng bcrypt để tránh lỗi trên Vercel)
+        // Simple authentication
         if (username === 'anura123' && password === 'anura123') {
             // Set cookie
             res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
@@ -100,31 +100,6 @@ async function handleLogin(req, res, db) {
                 username: username
             });
         } else {
-            // Nếu muốn dùng bcrypt, comment phần trên và dùng phần dưới
-            /*
-            const isValid = await db.authenticate(username, password);
-            if (isValid) {
-                res.setHeader('Set-Cookie', cookie.serialize('session_token', 'anura123_authenticated', {
-                    httpOnly: true,
-                    maxAge: 60 * 60 * 24 * 7,
-                    path: '/',
-                    sameSite: 'lax',
-                    secure: true
-                }));
-                
-                return res.json({ 
-                    success: true,
-                    username: username
-                });
-            } else {
-                res.status(401).json({ 
-                    success: false,
-                    error: 'Sai tên đăng nhập hoặc mật khẩu' 
-                });
-            }
-            */
-            
-            // Fallback: luôn trả về lỗi nếu không phải anura123/anura123
             res.status(401).json({ 
                 success: false,
                 error: 'Sai tên đăng nhập hoặc mật khẩu' 
@@ -152,7 +127,7 @@ function handleLogout(req, res) {
     res.json({ success: true });
 }
 
-// Create snippet handler
+// Create snippet handler - CHỈ 1 LINK
 async function handleCreateSnippet(req, res, db) {
     try {
         const body = await parseBody(req);
@@ -177,16 +152,22 @@ async function handleCreateSnippet(req, res, db) {
             return res.status(400).json({ error: result.error });
         }
         
-        // Build URLs
+        // Build URL - CHỈ 1 LINK DUY NHẤT
         const host = req.headers.host || 'anura-kun.vercel.app';
         const protocol = host.includes('localhost') ? 'http' : 'https';
         const baseUrl = `${protocol}://${host}`;
         
+        const rawUrl = `${baseUrl}/raw/${slug}`;
+        
+        console.log('✅ Snippet created:', {
+            slug: slug,
+            url: rawUrl
+        });
+        
         res.json({
             success: true,
             slug: slug,
-            raw_url: `${baseUrl}/raw/${slug}`,
-            real_url: `${baseUrl}/raw/${slug}?secret=${result.secretKey}`
+            raw_url: rawUrl  // CHỈ 1 LINK
         });
     } catch (error) {
         console.error('Create snippet error:', error);
