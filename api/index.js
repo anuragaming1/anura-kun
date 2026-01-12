@@ -272,3 +272,76 @@ async function handleCreateSnippet(req, res, db) {
         res.status(500).json({ error: 'Internal server error: ' + error.message });
     }
 }
+// ... (giữ nguyên phần trên) ...
+
+// Create snippet handler - THÊM DEBUG CHI TIẾT
+async function handleCreateSnippet(req, res, db) {
+    console.log('🔄 [CREATE] Creating new snippet...');
+    
+    try {
+        const body = await parseBody(req);
+        const { slug, content_fake, content_real } = body;
+        
+        console.log('📝 [CREATE] Request data:', {
+            slug: slug,
+            fake_length: content_fake?.length || 0,
+            real_length: content_real?.length || 0
+        });
+        
+        if (!slug || !content_fake || !content_real) {
+            console.log('❌ [CREATE] Missing fields:', {
+                hasSlug: !!slug,
+                hasFake: !!content_fake,
+                hasReal: !!content_real
+            });
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Validate slug format
+        if (!/^[a-z0-9-_]+$/i.test(slug)) {
+            console.log('❌ [CREATE] Invalid slug format:', slug);
+            return res.status(400).json({ 
+                error: 'Slug can only contain letters, numbers, hyphens and underscores' 
+            });
+        }
+        
+        console.log('✅ [CREATE] Slug validated:', slug);
+        
+        const result = await db.createSnippet(slug, content_fake, content_real);
+        
+        if (!result.success) {
+            console.log('❌ [CREATE] Failed to create snippet:', result.error);
+            return res.status(400).json({ error: result.error });
+        }
+        
+        // Debug: Kiểm tra snippet đã được lưu
+        const allSnippets = await db.getAllSnippets();
+        console.log('📋 [CREATE] All snippets after creation:');
+        allSnippets.forEach((s, i) => {
+            console.log(`   [${i}] "${s.slug}" - fake:${s.content_fake?.length || 0} real:${s.content_real?.length || 0}`);
+        });
+        
+        // Build URL
+        const host = req.headers.host || 'anura-kun.vercel.app';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const baseUrl = `${protocol}://${host}`;
+        const rawUrl = `${baseUrl}/raw/${slug}`;
+        
+        console.log('✅ [CREATE] Snippet created successfully!');
+        console.log('🔗 [CREATE] Raw URL:', rawUrl);
+        
+        res.json({
+            success: true,
+            slug: slug,
+            raw_url: rawUrl
+        });
+        
+    } catch (error) {
+        console.error('💥 [CREATE] Error:', error.message);
+        console.error('💥 [CREATE] Stack:', error.stack);
+        res.status(500).json({ 
+            error: 'Internal server error',
+            details: error.message 
+        });
+    }
+}
