@@ -5,31 +5,59 @@ document.addEventListener('DOMContentLoaded', function() {
     let isSlugAvailable = false;
     
     // DOM Elements
+    const loginModal = document.getElementById('loginModal');
+    const closeModalBtn = document.querySelector('.close-modal');
     const loginForm = document.getElementById('loginForm');
-    const loginMessage = document.getElementById('loginMessage');
-    const logoutBtn = document.getElementById('logoutBtn');
+    const mainContent = document.getElementById('mainContent');
+    const accessBlocked = document.getElementById('accessBlocked');
+    const loginPromptBtn = document.getElementById('loginPromptBtn');
+    const welcomeMessage = document.getElementById('welcomeMessage');
     const usernameDisplay = document.getElementById('usernameDisplay');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const footer = document.getElementById('footer');
     
-    // Check authentication status khi trang load
+    // Khởi tạo - hiển thị màn hình chặn và modal đăng nhập
+    mainContent.classList.add('hidden');
+    footer.classList.add('hidden');
+    accessBlocked.classList.remove('hidden');
+    loginModal.classList.remove('hidden');
+    
+    // Kiểm tra trạng thái đăng nhập khi load trang
     checkAuthStatus();
+    
+    // Close modal - chỉ cho đóng khi đã đăng nhập
+    closeModalBtn.addEventListener('click', () => {
+        if (!isLoggedIn) {
+            showNotification('Bạn phải đăng nhập để sử dụng hệ thống', 'error');
+            return;
+        }
+        loginModal.classList.add('hidden');
+    });
+    
+    // Click outside modal
+    window.addEventListener('click', (event) => {
+        if (event.target === loginModal && !isLoggedIn) {
+            showNotification('Vui lòng đăng nhập để tiếp tục', 'error');
+        }
+    });
     
     // Login form submit
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         
         const username = document.getElementById('username').value.trim();
-        const password = document.getElementById('password').value.trim();
+        const password = document.getElementById('password').value;
         
-        // Clear previous message
-        loginMessage.className = 'login-message';
-        loginMessage.textContent = '';
-        loginMessage.style.display = 'none';
-        
-        // Validation
         if (!username || !password) {
-            showLoginMessage('Vui lòng nhập đầy đủ thông tin', 'error');
+            showNotification('Vui lòng nhập đầy đủ thông tin', 'error');
             return;
         }
+        
+        // Show loading
+        const submitBtn = loginForm.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang xác thực...';
+        submitBtn.disabled = true;
         
         try {
             const response = await fetch('/api/login', {
@@ -40,30 +68,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({ username, password })
             });
             
-            if (response.ok) {
-                const data = await response.json();
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                isLoggedIn = true;
+                updateUIForLoggedIn(username);
+                loginModal.classList.add('hidden');
+                showNotification('Đăng nhập thành công! Chào mừng ' + username, 'success');
                 
-                if (data.success) {
-                    isLoggedIn = true;
-                    usernameDisplay.textContent = username;
-                    document.body.classList.add('logged-in');
-                    showLoginMessage('Đăng nhập thành công! Đang chuyển hướng...', 'success');
-                    
-                    // Chuyển sang app sau 1 giây
-                    setTimeout(() => {
-                        initApp();
-                    }, 1000);
-                } else {
-                    showLoginMessage('Sai tên đăng nhập hoặc mật khẩu', 'error');
-                }
+                // Load dữ liệu sau khi đăng nhập
+                setTimeout(() => {
+                    if (typeof loadRecentSnippets === 'function') {
+                        loadRecentSnippets();
+                    }
+                }, 500);
             } else {
-                showLoginMessage('Lỗi kết nối server', 'error');
+                showNotification(data.error || 'Sai tên đăng nhập hoặc mật khẩu', 'error');
+                // Clear password field
+                document.getElementById('password').value = '';
             }
         } catch (error) {
             console.error('Login error:', error);
-            showLoginMessage('Lỗi kết nối mạng. Vui lòng thử lại', 'error');
+            showNotification('Lỗi kết nối server. Vui lòng thử lại sau.', 'error');
+        } finally {
+            // Reset button
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         }
     });
+    
+    // Login prompt button
+    if (loginPromptBtn) {
+        loginPromptBtn.addEventListener('click', () => {
+            loginModal.classList.remove('hidden');
+        });
+    }
     
     // Logout button
     if (logoutBtn) {
@@ -76,11 +115,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('/api/check-auth');
             if (response.ok) {
                 const data = await response.json();
-                if (data.authenticated) {
+                if (data.authenticated && data.username) {
                     isLoggedIn = true;
-                    document.body.classList.add('logged-in');
-                    usernameDisplay.textContent = data.username || 'anura123';
-                    initApp();
+                    updateUIForLoggedIn(data.username);
+                    
+                    // Load dữ liệu
+                    if (typeof loadRecentSnippets === 'function') {
+                        loadRecentSnippets();
+                    }
                 }
             }
         } catch (error) {
@@ -88,20 +130,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Initialize app after login
-    function initApp() {
-        setupTabs();
-        setupFileUploads();
-        setupSlugCheck();
-        setupCreateSnippet();
-        setupResetButton();
-        setupCopyButtons();
-        setupRefreshSnippets();
-        loadRecentSnippets();
+    // Update UI when logged in
+    function updateUIForLoggedIn(username) {
+        // Hiển thị welcome message
+        if (welcomeMessage) {
+            welcomeMessage.classList.remove('hidden');
+            usernameDisplay.textContent = username;
+        }
+        
+        // Hiển thị nội dung chính
+        mainContent.classList.remove('hidden');
+        accessBlocked.classList.add('hidden');
+        footer.classList.remove('hidden');
+        
+        // Cập nhật các form container
+        const formContainer = document.getElementById('formContainer');
+        const loginRequired = document.getElementById('loginRequired');
+        const snippetsLoginRequired = document.getElementById('snippetsLoginRequired');
+        const snippetsList = document.getElementById('snippets-list');
+        
+        if (formContainer) formContainer.classList.remove('hidden');
+        if (loginRequired) loginRequired.classList.add('hidden');
+        if (snippetsLoginRequired) snippetsLoginRequired.classList.add('hidden');
+        if (snippetsList) snippetsList.classList.remove('hidden');
     }
     
     // Logout function
     async function logout() {
+        if (!confirm('Bạn có chắc muốn đăng xuất khỏi hệ thống?')) {
+            return;
+        }
+        
         try {
             const response = await fetch('/api/logout', { 
                 method: 'POST',
@@ -110,82 +169,53 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok) {
                 isLoggedIn = false;
-                document.body.classList.remove('logged-in');
                 
-                // Clear form
+                // Reset UI
+                mainContent.classList.add('hidden');
+                footer.classList.add('hidden');
+                accessBlocked.classList.remove('hidden');
+                loginModal.classList.remove('hidden');
+                
+                if (welcomeMessage) {
+                    welcomeMessage.classList.add('hidden');
+                }
+                
+                // Reset form
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
                 
-                showNotification('Đã đăng xuất thành công', 'info');
-            } else {
-                showNotification('Lỗi khi đăng xuất', 'error');
+                // Reset snippet form
+                if (document.getElementById('slug')) {
+                    document.getElementById('slug').value = '';
+                    document.getElementById('content_fake').value = '';
+                    document.getElementById('content_real').value = '';
+                    document.getElementById('slug-status').textContent = '';
+                    document.getElementById('result-section').classList.add('hidden');
+                    isSlugAvailable = false;
+                }
+                
+                showNotification('Đã đăng xuất khỏi hệ thống', 'info');
             }
         } catch (error) {
-            console.error('Logout error:', error);
-            showNotification('Lỗi kết nối mạng', 'error');
+            showNotification('Lỗi khi đăng xuất', 'error');
         }
     }
     
-    // Show login message
-    function showLoginMessage(message, type = 'info') {
-        loginMessage.textContent = message;
-        loginMessage.className = `login-message ${type}`;
-        loginMessage.style.display = 'block';
-        
-        // Auto hide after 5 seconds for info messages
-        if (type === 'info') {
-            setTimeout(() => {
-                loginMessage.style.display = 'none';
-            }, 5000);
-        }
-    }
-    
-    // Show notification in app
+    // Show notification
     function showNotification(message, type = 'info') {
         // Remove existing notification
-        const existingNotification = document.querySelector('.app-notification');
+        const existingNotification = document.querySelector('.notification');
         if (existingNotification) {
             existingNotification.remove();
         }
         
         // Create new notification
         const notification = document.createElement('div');
-        notification.className = `app-notification notification-${type}`;
+        notification.className = `notification notification-${type}`;
         notification.innerHTML = `
             <span>${message}</span>
             <button class="notification-close">&times;</button>
         `;
-        
-        // Add styles
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 20px;
-            border-radius: 8px;
-            color: white;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-            z-index: 10000;
-            animation: slideIn 0.3s ease-out;
-            min-width: 300px;
-            max-width: 90vw;
-        `;
-        
-        // Set color based on type
-        if (type === 'success') {
-            notification.style.background = 'linear-gradient(90deg, #00cc00, #009900)';
-            notification.style.border = '1px solid #00ff00';
-        } else if (type === 'error') {
-            notification.style.background = 'linear-gradient(90deg, #ff3333, #cc0000)';
-            notification.style.border = '1px solid #ff6666';
-        } else {
-            notification.style.background = 'linear-gradient(90deg, #00ccff, #0088cc)';
-            notification.style.border = '1px solid #00ddff';
-        }
         
         document.body.appendChild(notification);
         
@@ -203,31 +233,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     }
     
-    // Add CSS for notifications
-    const style = document.createElement('style');
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        @keyframes slideOut {
-            from { transform: translateX(0); opacity: 1; }
-            to { transform: translateX(100%); opacity: 0; }
-        }
-        .notification-close {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5rem;
-            cursor: pointer;
-            line-height: 1;
-            padding: 0;
-            margin: 0;
-        }
-    `;
-    document.head.appendChild(style);
+    // Setup các chức năng khác
+    setupTabs();
+    setupFileUploads();
+    setupSlugCheck();
+    setupCreateSnippet();
+    setupResetButton();
+    setupCopyButtons();
+    setupRefreshSnippets();
     
-    // Existing code for app functionality
+    // Tab switching
     function setupTabs() {
         const tabs = document.querySelectorAll('.tab');
         const tabContents = document.querySelectorAll('.tab-content');
@@ -249,6 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // File upload handling
     function setupFileUploads() {
         const uploadFakeBtn = document.getElementById('upload-fake');
         const uploadRealBtn = document.getElementById('upload-real');
@@ -273,6 +289,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function handleFileUpload(event, type) {
+        if (!isLoggedIn) {
+            showNotification('Vui lòng đăng nhập trước', 'error');
+            loginModal.classList.remove('hidden');
+            return;
+        }
+        
         const file = event.target.files[0];
         if (!file) return;
         
@@ -298,6 +320,7 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.readAsText(file);
     }
     
+    // Slug checking
     function setupSlugCheck() {
         const slugInput = document.getElementById('slug');
         const checkSlugBtn = document.getElementById('check-slug');
@@ -320,6 +343,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         async function checkSlug() {
+            if (!isLoggedIn) {
+                showNotification('Vui lòng đăng nhập trước', 'error');
+                loginModal.classList.remove('hidden');
+                return;
+            }
+            
             const slug = slugInput.value.trim();
             
             if (!slug) {
@@ -335,22 +364,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             try {
-                const response = await fetch(`/api/check/${slug}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    
-                    if (data.available) {
-                        slugStatus.textContent = '✓ Tên đường dẫn có sẵn';
-                        slugStatus.style.color = '#00ff00';
-                        isSlugAvailable = true;
-                    } else {
-                        slugStatus.textContent = '✗ Tên đường dẫn đã tồn tại';
-                        slugStatus.style.color = '#ff5555';
-                        isSlugAvailable = false;
-                    }
+                const response = await fetch(`/api/check/${slug}`, {
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                
+                if (data.available) {
+                    slugStatus.textContent = '✓ Tên đường dẫn có sẵn';
+                    slugStatus.style.color = '#00ff00';
+                    isSlugAvailable = true;
                 } else {
-                    slugStatus.textContent = 'Lỗi xác thực. Vui lòng đăng nhập lại';
+                    slugStatus.textContent = '✗ Tên đường dẫn đã tồn tại';
                     slugStatus.style.color = '#ff5555';
+                    isSlugAvailable = false;
                 }
             } catch (error) {
                 slugStatus.textContent = 'Lỗi kết nối server';
@@ -359,11 +385,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Create snippet
     function setupCreateSnippet() {
         const createBtn = document.getElementById('create-btn');
         if (!createBtn) return;
         
         createBtn.addEventListener('click', async () => {
+            if (!isLoggedIn) {
+                showNotification('Vui lòng đăng nhập để tạo snippet', 'error');
+                loginModal.classList.remove('hidden');
+                return;
+            }
+            
             const slug = document.getElementById('slug').value.trim();
             const contentFake = document.getElementById('content_fake').value.trim();
             const contentReal = document.getElementById('content_real').value.trim();
@@ -402,40 +435,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(formData)
+                    body: JSON.stringify(formData),
+                    credentials: 'include'
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Update UI with results
+                    document.getElementById('public-link').value = result.raw_url;
+                    document.getElementById('secret-link').value = result.real_url;
                     
-                    if (result.success) {
-                        // Update UI with results
-                        document.getElementById('public-link').value = result.raw_url;
-                        document.getElementById('secret-link').value = result.real_url;
-                        
-                        // Show result section
-                        document.getElementById('result-section').classList.remove('hidden');
-                        
-                        // Scroll to results
-                        document.getElementById('result-section').scrollIntoView({ 
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                        
-                        // Reload snippets list
+                    // Show result section
+                    document.getElementById('result-section').classList.remove('hidden');
+                    
+                    // Scroll to results
+                    document.getElementById('result-section').scrollIntoView({ 
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    
+                    // Reload snippets list
+                    if (typeof loadRecentSnippets === 'function') {
                         loadRecentSnippets();
-                        
-                        showNotification('Tạo snippet thành công!', 'success');
-                    } else {
-                        showNotification('Lỗi: ' + result.error, 'error');
                     }
-                } else if (response.status === 401) {
-                    showNotification('Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại', 'error');
-                    setTimeout(() => {
-                        logout();
-                    }, 2000);
+                    
+                    showNotification('Tạo snippet thành công!', 'success');
                 } else {
-                    showNotification('Lỗi server', 'error');
+                    showNotification('Lỗi: ' + result.error, 'error');
                 }
             } catch (error) {
                 showNotification('Lỗi kết nối server', 'error');
@@ -447,11 +474,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Reset form
     function setupResetButton() {
         const resetBtn = document.getElementById('reset-btn');
         if (!resetBtn) return;
         
         resetBtn.addEventListener('click', () => {
+            if (!isLoggedIn) {
+                showNotification('Vui lòng đăng nhập trước', 'error');
+                loginModal.classList.remove('hidden');
+                return;
+            }
+            
             document.getElementById('slug').value = '';
             document.getElementById('content_fake').value = '';
             document.getElementById('content_real').value = '';
@@ -462,9 +496,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Copy buttons
     function setupCopyButtons() {
         document.addEventListener('click', (e) => {
             if (e.target.closest('.copy-btn')) {
+                if (!isLoggedIn) {
+                    showNotification('Vui lòng đăng nhập trước', 'error');
+                    loginModal.classList.remove('hidden');
+                    return;
+                }
+                
                 const button = e.target.closest('.copy-btn');
                 const targetId = button.getAttribute('data-clipboard-target');
                 const input = document.querySelector(targetId);
@@ -489,6 +530,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Load recent snippets
     function setupRefreshSnippets() {
         const refreshBtn = document.getElementById('refresh-snippets');
         if (refreshBtn) {
@@ -497,58 +539,91 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     async function loadRecentSnippets() {
+        if (!isLoggedIn) return;
+        
         const snippetsList = document.getElementById('snippets-list');
         if (!snippetsList) return;
         
         snippetsList.innerHTML = '<div class="loading-snippet"><i class="fas fa-spinner fa-spin"></i> Đang tải...</div>';
+        snippetsList.classList.remove('hidden');
         
         try {
-            const response = await fetch('/api/snippets');
+            const response = await fetch('/api/snippets', {
+                credentials: 'include'
+            });
+            const snippets = await response.json();
             
-            if (response.ok) {
-                const snippets = await response.json();
-                
-                if (!snippets || snippets.length === 0) {
-                    snippetsList.innerHTML = '<div class="loading-snippet">Chưa có snippet nào</div>';
-                    return;
-                }
-                
-                snippetsList.innerHTML = '';
-                
-                snippets.forEach(snippet => {
-                    const date = new Date(snippet.created_at);
-                    const formattedDate = date.toLocaleDateString('vi-VN');
-                    const formattedTime = date.toLocaleTimeString('vi-VN', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                    });
-                    
-                    const snippetElement = document.createElement('div');
-                    snippetElement.className = 'snippet-item';
-                    snippetElement.innerHTML = `
-                        <div class="snippet-header">
-                            <a href="/raw/${snippet.slug}" target="_blank" class="snippet-slug">
-                                /raw/${snippet.slug}
-                            </a>
-                        </div>
-                        <div class="snippet-meta">
-                            <span><i class="far fa-calendar"></i> ${formattedDate}</span>
-                            <span><i class="far fa-clock"></i> ${formattedTime}</span>
-                            <span><i class="far fa-eye"></i> ${snippet.views} lượt xem</span>
-                        </div>
-                    `;
-                    
-                    snippetsList.appendChild(snippetElement);
-                });
-            } else if (response.status === 401) {
-                snippetsList.innerHTML = '<div class="loading-snippet">Phiên đăng nhập hết hạn</div>';
-            } else {
-                snippetsList.innerHTML = '<div class="loading-snippet">Lỗi khi tải dữ liệu</div>';
+            if (!snippets || snippets.length === 0) {
+                snippetsList.innerHTML = '<div class="loading-snippet">Chưa có snippet nào</div>';
+                return;
             }
+            
+            snippetsList.innerHTML = '';
+            
+            snippets.forEach(snippet => {
+                const date = new Date(snippet.created_at);
+                const formattedDate = date.toLocaleDateString('vi-VN');
+                const formattedTime = date.toLocaleTimeString('vi-VN', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                const snippetElement = document.createElement('div');
+                snippetElement.className = 'snippet-item';
+                snippetElement.innerHTML = `
+                    <div class="snippet-header">
+                        <a href="/raw/${snippet.slug}" target="_blank" class="snippet-slug">
+                            /raw/${snippet.slug}
+                        </a>
+                    </div>
+                    <div class="snippet-meta">
+                        <span><i class="far fa-calendar"></i> ${formattedDate}</span>
+                        <span><i class="far fa-clock"></i> ${formattedTime}</span>
+                        <span><i class="far fa-eye"></i> ${snippet.views} lượt xem</span>
+                    </div>
+                `;
+                
+                snippetsList.appendChild(snippetElement);
+            });
         } catch (error) {
-            snippetsList.innerHTML = '<div class="loading-snippet">Lỗi kết nối server</div>';
+            snippetsList.innerHTML = '<div class="loading-snippet">Lỗi khi tải dữ liệu</div>';
         }
     }
+    
+    // Prompt login buttons
+    const promptLoginBtn = document.getElementById('promptLoginBtn');
+    const promptLoginBtn2 = document.getElementById('promptLoginBtn2');
+    
+    if (promptLoginBtn) {
+        promptLoginBtn.addEventListener('click', () => {
+            loginModal.classList.remove('hidden');
+        });
+    }
+    
+    if (promptLoginBtn2) {
+        promptLoginBtn2.addEventListener('click', () => {
+            loginModal.classList.remove('hidden');
+        });
+    }
+    
+    // Chặn truy cập API khi chưa đăng nhập
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+        // Cho phép request login và check-auth
+        if (typeof args[0] === 'string' && 
+            (args[0].includes('/api/login') || args[0].includes('/api/check-auth'))) {
+            return originalFetch.apply(this, args);
+        }
+        
+        // Chặn các API khác nếu chưa đăng nhập
+        if (!isLoggedIn && typeof args[0] === 'string' && args[0].includes('/api/')) {
+            showNotification('Vui lòng đăng nhập trước', 'error');
+            loginModal.classList.remove('hidden');
+            throw new Error('Not authenticated');
+        }
+        
+        return originalFetch.apply(this, args);
+    };
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
@@ -559,11 +634,9 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
-        // Escape to logout
-        if (e.key === 'Escape' && isLoggedIn) {
-            if (confirm('Bạn có muốn đăng xuất không?')) {
-                logout();
-            }
+        // Escape không thể đóng modal nếu chưa đăng nhập
+        if (e.key === 'Escape' && !isLoggedIn) {
+            showNotification('Bạn phải đăng nhập để sử dụng hệ thống', 'error');
         }
     });
 });
