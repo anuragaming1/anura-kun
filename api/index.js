@@ -217,3 +217,58 @@ function parseBody(req) {
         });
     });
 }
+// ... (giữ nguyên phần trên) ...
+
+// Create snippet handler - THÊM DEBUG
+async function handleCreateSnippet(req, res, db) {
+    try {
+        const body = await parseBody(req);
+        const { slug, content_fake, content_real } = body;
+        
+        console.log('🔄 Creating snippet:', slug);
+        console.log('📝 Fake content length:', content_fake?.length || 0);
+        console.log('📝 Real content length:', content_real?.length || 0);
+        
+        if (!slug || !content_fake || !content_real) {
+            return res.status(400).json({ error: 'Missing required fields' });
+        }
+        
+        // Validate slug format
+        if (!/^[a-z0-9-_]+$/i.test(slug)) {
+            return res.status(400).json({ 
+                error: 'Slug can only contain letters, numbers, hyphens and underscores' 
+            });
+        }
+        
+        const result = await db.createSnippet(slug, content_fake, content_real);
+        
+        if (!result.success) {
+            return res.status(400).json({ error: result.error });
+        }
+        
+        // Debug: Kiểm tra snippet đã được lưu
+        const allSnippets = await db.getAllSnippets();
+        console.log('📋 All snippets after creation:', allSnippets.map(s => s.slug));
+        
+        // Build URL - CHỈ 1 LINK DUY NHẤT
+        const host = req.headers.host || 'anura-kun.vercel.app';
+        const protocol = host.includes('localhost') ? 'http' : 'https';
+        const baseUrl = `${protocol}://${host}`;
+        
+        const rawUrl = `${baseUrl}/raw/${slug}`;
+        
+        console.log('✅ Snippet created successfully:', {
+            slug: slug,
+            url: rawUrl
+        });
+        
+        res.json({
+            success: true,
+            slug: slug,
+            raw_url: rawUrl  // CHỈ 1 LINK
+        });
+    } catch (error) {
+        console.error('❌ Create snippet error:', error);
+        res.status(500).json({ error: 'Internal server error: ' + error.message });
+    }
+}
