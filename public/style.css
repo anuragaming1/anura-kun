@@ -13,7 +13,6 @@
     --card-bg: rgba(20, 20, 40, 0.9);
     --card-border: rgba(0, 204, 255, 0.2);
     --error-red: #ff3333;
-    --warning-yellow: #ffcc00;
 }
 
 body {
@@ -24,7 +23,6 @@ body {
     min-height: 100vh;
     background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
     padding: 10px;
-    overflow-x: hidden;
 }
 
 .container {
@@ -36,7 +34,7 @@ body {
     flex-direction: column;
 }
 
-/* Header responsive */
+/* Header */
 .neon-header {
     text-align: center;
     margin-bottom: 25px;
@@ -241,17 +239,6 @@ body {
     padding-left: 45px;
 }
 
-/* Login note với list */
-.login-note {
-    margin-top: 20px;
-    padding: 12px;
-    background: rgba(255, 0, 204, 0.1);
-    border-radius: 8px;
-    color: #ffccff;
-    font-size: 0.9rem;
-    border: 1px solid rgba(255, 0, 204, 0.3);
-}
-
 .login-note ul {
     list-style: none;
     padding-left: 0;
@@ -273,7 +260,7 @@ body {
     font-size: 1.2rem;
 }
 
-/* Access blocked overlay */
+/* Access blocked */
 .access-blocked {
     position: fixed;
     top: 0;
@@ -337,11 +324,7 @@ body {
     gap: 10px;
 }
 
-.security-warning i {
-    font-size: 1.2rem;
-}
-
-/* Main sections */
+/* Main content */
 .main-content {
     display: flex;
     flex-direction: column;
@@ -379,7 +362,7 @@ body {
     box-shadow: 0 0 10px rgba(255, 0, 204, 0.3);
 }
 
-/* Login required prompt */
+/* Login required */
 .login-required {
     background: rgba(20, 20, 40, 0.8);
     border-radius: 10px;
@@ -412,7 +395,7 @@ body {
     line-height: 1.5;
 }
 
-/* Form styles responsive */
+/* Form styles */
 .form-container {
     background: var(--card-bg);
     border-radius: 12px;
@@ -514,7 +497,7 @@ body {
     align-items: center;
 }
 
-/* Tabs responsive */
+/* Tabs */
 .tabs-container {
     margin: 20px 0;
 }
@@ -593,7 +576,7 @@ body {
     gap: 10px;
 }
 
-/* Code editor responsive */
+/* Code editor */
 .editor-container {
     border-radius: 8px;
     overflow: hidden;
@@ -636,11 +619,7 @@ body {
     resize: vertical;
 }
 
-.code-editor:focus {
-    outline: none;
-}
-
-/* Buttons responsive */
+/* Buttons */
 .neon-btn-primary, .neon-btn-secondary, .neon-btn-small {
     padding: 12px 20px;
     border: none;
@@ -706,7 +685,7 @@ body {
     min-width: 150px;
 }
 
-/* Result section responsive */
+/* Result section */
 .result-container {
     display: flex;
     flex-direction: column;
@@ -732,20 +711,11 @@ body {
     }
 }
 
-.result-card.secret {
-    border-color: rgba(255, 0, 204, 0.3);
-    background: rgba(40, 20, 40, 0.8);
-}
-
 .result-icon {
     font-size: 2.5rem;
     color: var(--neon-blue);
     min-width: 60px;
     text-align: center;
-}
-
-.result-card.secret .result-icon {
-    color: var(--neon-pink);
 }
 
 .result-content {
@@ -756,10 +726,6 @@ body {
     margin-bottom: 12px;
     color: var(--neon-blue);
     font-size: 1.3rem;
-}
-
-.result-card.secret .result-content h3 {
-    color: var(--neon-pink);
 }
 
 .link-container {
@@ -804,7 +770,7 @@ body {
     line-height: 1.4;
 }
 
-/* Usage examples responsive */
+/* Usage examples */
 .usage-examples {
     margin-top: 20px;
 }
@@ -848,7 +814,7 @@ body {
     margin: 0;
 }
 
-/* Snippets list responsive */
+/* Snippets list */
 .snippets-container {
     background: var(--card-bg);
     border-radius: 12px;
@@ -924,7 +890,7 @@ body {
     grid-column: 1 / -1;
 }
 
-/* Footer responsive */
+/* Footer */
 .neon-footer {
     text-align: center;
     margin-top: 40px;
@@ -954,7 +920,7 @@ body {
     color: var(--neon-blue);
 }
 
-/* Notification styles */
+/* Notification */
 .notification {
     position: fixed;
     top: 20px;
@@ -1026,12 +992,12 @@ body {
     }
 }
 
-/* Utility classes */
+/* Utility */
 .hidden {
     display: none !important;
 }
 
-/* Mobile-specific adjustments */
+/* Mobile */
 @media (max-width: 767px) {
     .container {
         padding: 10px;
@@ -1110,7 +1076,7 @@ body {
     }
 }
 
-/* Tablet adjustments */
+/* Tablet */
 @media (min-width: 768px) and (max-width: 1024px) {
     .container {
         padding: 20px;
@@ -1118,18 +1084,5 @@ body {
     
     .neon-title {
         font-size: 2.5rem;
-    }
-}
-
-/* Print styles */
-@media print {
-    .neon-header, .neon-footer, .login-btn, .form-actions,
-    .access-blocked, .modal, .notification {
-        display: none;
-    }
-    
-    body {
-        background: white;
-        color: black;
     }
 }
