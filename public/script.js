@@ -19,16 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const checkSlugBtn = document.getElementById('check-slug');
     const slugStatus = document.getElementById('slug-status');
     
-    // Khởi tạo - hiển thị màn hình chặn và modal đăng nhập
+    // Khởi tạo
     mainContent.classList.add('hidden');
     footer.classList.add('hidden');
     accessBlocked.classList.remove('hidden');
     loginModal.classList.remove('hidden');
     
-    // Kiểm tra trạng thái đăng nhập khi load trang
+    // Check authentication
     checkAuthStatus();
     
-    // Close modal - chỉ cho đóng khi đã đăng nhập
+    // Close modal
     closeModalBtn.addEventListener('click', () => {
         if (!isLoggedIn) {
             showNotification('Bạn phải đăng nhập để sử dụng hệ thống', 'error');
@@ -80,7 +80,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 loginModal.classList.add('hidden');
                 showNotification('Đăng nhập thành công! Chào mừng ' + username, 'success');
                 
-                // Load dữ liệu sau khi đăng nhập
                 setTimeout(() => {
                     if (typeof loadRecentSnippets === 'function') {
                         loadRecentSnippets();
@@ -88,14 +87,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }, 500);
             } else {
                 showNotification(data.error || 'Sai tên đăng nhập hoặc mật khẩu', 'error');
-                // Clear password field
                 document.getElementById('password').value = '';
             }
         } catch (error) {
             console.error('Login error:', error);
             showNotification('Lỗi kết nối server. Vui lòng thử lại sau.', 'error');
         } finally {
-            // Reset button
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
         }
@@ -126,7 +123,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     isLoggedIn = true;
                     updateUIForLoggedIn(data.username);
                     
-                    // Load dữ liệu
                     if (typeof loadRecentSnippets === 'function') {
                         loadRecentSnippets();
                     }
@@ -139,18 +135,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Update UI when logged in
     function updateUIForLoggedIn(username) {
-        // Hiển thị welcome message
         if (welcomeMessage) {
             welcomeMessage.classList.remove('hidden');
             usernameDisplay.textContent = username;
         }
         
-        // Hiển thị nội dung chính
         mainContent.classList.remove('hidden');
         accessBlocked.classList.add('hidden');
         footer.classList.remove('hidden');
         
-        // Cập nhật các form container
         const formContainer = document.getElementById('formContainer');
         const loginRequired = document.getElementById('loginRequired');
         const snippetsLoginRequired = document.getElementById('snippetsLoginRequired');
@@ -177,7 +170,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (response.ok) {
                 isLoggedIn = false;
                 
-                // Reset UI
                 mainContent.classList.add('hidden');
                 footer.classList.add('hidden');
                 accessBlocked.classList.remove('hidden');
@@ -187,11 +179,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     welcomeMessage.classList.add('hidden');
                 }
                 
-                // Reset form
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
                 
-                // Reset snippet form
                 if (slugInput) {
                     slugInput.value = '';
                     document.getElementById('content_fake').value = '';
@@ -210,13 +200,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show notification
     function showNotification(message, type = 'info') {
-        // Remove existing notification
         const existingNotification = document.querySelector('.notification');
         if (existingNotification) {
             existingNotification.remove();
         }
         
-        // Create new notification
         const notification = document.createElement('div');
         notification.className = `notification notification-${type}`;
         notification.innerHTML = `
@@ -226,12 +214,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.appendChild(notification);
         
-        // Close button
         notification.querySelector('.notification-close').addEventListener('click', () => {
             notification.remove();
         });
         
-        // Auto remove after 5 seconds
         setTimeout(() => {
             if (notification.parentNode) {
                 notification.style.animation = 'slideOut 0.3s ease-out forwards';
@@ -305,7 +291,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const file = event.target.files[0];
         if (!file) return;
         
-        // Check file type
         const allowedExtensions = ['.lua', '.luau', '.txt'];
         const fileExt = '.' + file.name.split('.').pop().toLowerCase();
         
@@ -404,7 +389,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Create snippet
+    // Create snippet - CHỈ 1 LINK
     function setupCreateSnippet() {
         const createBtn = document.getElementById('create-btn');
         if (!createBtn) return;
@@ -420,7 +405,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const contentFake = document.getElementById('content_fake').value.trim();
             const contentReal = document.getElementById('content_real').value.trim();
             
-            // Validation
             if (!slug) {
                 showNotification('Vui lòng nhập tên đường dẫn', 'error');
                 return;
@@ -436,14 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Prepare data
             const formData = {
                 slug: slug,
                 content_fake: contentFake,
                 content_real: contentReal
             };
             
-            // Show loading
             const originalText = createBtn.innerHTML;
             createBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
             createBtn.disabled = true;
@@ -461,20 +443,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Update UI with results
+                    // CHỈ 1 LINK
                     document.getElementById('public-link').value = result.raw_url;
-                    document.getElementById('secret-link').value = result.real_url;
                     
-                    // Show result section
                     document.getElementById('result-section').classList.remove('hidden');
                     
-                    // Scroll to results
                     document.getElementById('result-section').scrollIntoView({ 
                         behavior: 'smooth',
                         block: 'start'
                     });
                     
-                    // Reload snippets list
                     if (typeof loadRecentSnippets === 'function') {
                         loadRecentSnippets();
                     }
@@ -487,7 +465,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Create snippet error:', error);
                 showNotification('Lỗi kết nối server', 'error');
             } finally {
-                // Reset button
                 createBtn.innerHTML = originalText;
                 createBtn.disabled = false;
             }
@@ -535,7 +512,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 input.select();
                 document.execCommand('copy');
                 
-                // Visual feedback
                 const originalHtml = button.innerHTML;
                 button.innerHTML = '<i class="fas fa-check"></i>';
                 button.style.background = 'linear-gradient(90deg, #00ff00, #008800)';
@@ -635,13 +611,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Chặn truy cập API khi chưa đăng nhập
     const originalFetch = window.fetch;
     window.fetch = async function(...args) {
-        // Cho phép request login và check-auth
         if (typeof args[0] === 'string' && 
             (args[0].includes('/api/login') || args[0].includes('/api/check-auth'))) {
             return originalFetch.apply(this, args);
         }
         
-        // Chặn các API khác nếu chưa đăng nhập
         if (!isLoggedIn && typeof args[0] === 'string' && args[0].includes('/api/')) {
             showNotification('Vui lòng đăng nhập trước', 'error');
             loginModal.classList.remove('hidden');
@@ -653,14 +627,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
-        // Ctrl+Enter to submit form
         if (e.ctrlKey && e.key === 'Enter') {
             if (document.getElementById('create-btn')) {
                 document.getElementById('create-btn').click();
             }
         }
         
-        // Escape không thể đóng modal nếu chưa đăng nhập
         if (e.key === 'Escape' && !isLoggedIn) {
             showNotification('Bạn phải đăng nhập để sử dụng hệ thống', 'error');
         }
