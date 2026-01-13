@@ -1,20 +1,23 @@
 {
   "name": "anura-kun",
   "version": "1.0.0",
-  "description": "Secure pastebin for Lua/Luau with dual security - Deploy on Vercel",
-  "main": "api/index.js",
+  "description": "Snippet sharing platform with hidden content",
+  "main": "server.js",
   "scripts": {
-    "dev": "vercel dev",
-    "start": "node api/index.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "vercel-build": "echo 'Building for Vercel...'",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "@vercel/kv": "^1.0.0",
-    "@vercel/kv": "^2.0.0",
-    "sqlite3": "^5.1.6",
-    "bcryptjs": "^2.4.3",
-    "cookie": "^0.5.0"
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "body-parser": "^1.20.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
   },
   "engines": {
-    "node": "24.x"
+    "node": ">=14.0.0"
   }
 }
