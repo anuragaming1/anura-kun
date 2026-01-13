@@ -8,6 +8,7 @@
     "start": "node api/index.js"
   },
   "dependencies": {
+    "@vercel/kv": "^1.0.0",
     "@vercel/kv": "^2.0.0",
     "sqlite3": "^5.1.6",
     "bcryptjs": "^2.4.3",
